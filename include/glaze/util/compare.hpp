@@ -221,7 +221,7 @@ namespace glz
    }
 
    template <const std::string_view& Str, size_t N = Str.size()>
-   GLZ_ALWAYS_INLINE bool comparitor(const auto* other) noexcept
+   GLZ_ALWAYS_INLINE constexpr bool comparitor(const auto* other) noexcept
    {
       // pack() builds values in little-endian order (byte 0 in LSB position).
       // On big-endian systems, memcpy produces native (big-endian) values,

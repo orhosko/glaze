@@ -14,7 +14,7 @@
 namespace glz
 {
    template <auto Opts, bool Padded = false>
-   auto read_iterators(contiguous auto&& buffer) noexcept
+   constexpr auto read_iterators(contiguous auto&& buffer) noexcept
    {
       static_assert(sizeof(decltype(*buffer.data())) == 1);
 
@@ -33,7 +33,7 @@ namespace glz
 
    template <auto Opts, class T>
       requires read_supported<T, Opts.format>
-   [[nodiscard]] error_ctx read(T& value, contiguous auto&& buffer, is_context auto&& ctx)
+   [[nodiscard]] constexpr error_ctx read(T& value, contiguous auto&& buffer, is_context auto&& ctx)
    {
       static_assert(sizeof(decltype(*buffer.data())) == 1);
       using Buffer = std::remove_reference_t<decltype(buffer)>;
@@ -112,7 +112,7 @@ namespace glz
 
    template <auto Opts, class T>
       requires read_supported<T, Opts.format>
-   [[nodiscard]] error_ctx read(T& value, contiguous auto&& buffer)
+   [[nodiscard]] constexpr error_ctx read(T& value, contiguous auto&& buffer)
    {
       context ctx{};
       return read<Opts>(value, buffer, ctx);

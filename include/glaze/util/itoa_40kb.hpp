@@ -123,7 +123,7 @@ namespace glz
          return buf + 2;
       }
 
-      GLZ_ALWAYS_INLINE char* u64_4(char* buf, uint64_t val) noexcept
+      GLZ_ALWAYS_INLINE constexpr char* u64_4(char* buf, uint64_t val) noexcept
       {
          const uint64_t aa = (val * 5243ULL) >> 19;
          const uint64_t lz = val < 1000;
@@ -133,7 +133,7 @@ namespace glz
          return buf + 4;
       }
 
-      GLZ_ALWAYS_INLINE char* u64_6(char* buf, uint64_t val) noexcept
+      GLZ_ALWAYS_INLINE constexpr char* u64_6(char* buf, uint64_t val) noexcept
       {
          const uint64_t aa = (val * 429497ULL) >> 32;
          const uint64_t lz = val < 100000;
@@ -271,7 +271,7 @@ namespace glz
 
    template <class T>
       requires std::same_as<std::remove_cvref_t<T>, uint32_t>
-   GLZ_ALWAYS_INLINE char* to_chars_40kb(char* buf, T val) noexcept
+   GLZ_ALWAYS_INLINE constexpr char* to_chars_40kb(char* buf, T val) noexcept
    {
       using namespace itoa_40kb_impl;
       if (val < 10000) {
@@ -293,7 +293,7 @@ namespace glz
 
    template <class T>
       requires std::same_as<std::remove_cvref_t<T>, int32_t>
-   GLZ_ALWAYS_INLINE char* to_chars_40kb(char* buf, T val) noexcept
+   GLZ_ALWAYS_INLINE constexpr char* to_chars_40kb(char* buf, T val) noexcept
    {
       *buf = '-';
       return to_chars_40kb(buf + (val < 0),
@@ -302,7 +302,7 @@ namespace glz
 
    template <class T>
       requires std::same_as<std::remove_cvref_t<T>, uint64_t>
-   GLZ_ALWAYS_INLINE char* to_chars_40kb(char* buf, T val) noexcept
+   GLZ_ALWAYS_INLINE constexpr char* to_chars_40kb(char* buf, T val) noexcept
    {
       using namespace itoa_40kb_impl;
       if (val < 10000) {
@@ -339,7 +339,7 @@ namespace glz
 
    template <class T>
       requires std::same_as<std::remove_cvref_t<T>, int64_t>
-   GLZ_ALWAYS_INLINE char* to_chars_40kb(char* buf, T val) noexcept
+   GLZ_ALWAYS_INLINE constexpr char* to_chars_40kb(char* buf, T val) noexcept
    {
       *buf = '-';
       return to_chars_40kb(buf + (val < 0),

@@ -44,7 +44,7 @@ namespace glz
    struct parse<JSON>
    {
       template <auto Opts, class T, is_context Ctx, class It0, class It1>
-      GLZ_ALWAYS_INLINE static void op(T&& value, Ctx&& ctx, It0&& it, It1 end)
+      GLZ_ALWAYS_INLINE static constexpr void op(T&& value, Ctx&& ctx, It0&& it, It1 end)
       {
          if constexpr (const_value_v<T>) {
             if constexpr (check_error_on_const_read(Opts)) {
@@ -227,7 +227,8 @@ namespace glz
 
    template <auto Opts, class T, size_t I, class Value, class... SelectedIndex>
       requires(glaze_object_t<T> || reflectable<T>)
-   void decode_index(Value&& value, is_context auto&& ctx, auto&& it, auto&& end, SelectedIndex&&... selected_index)
+   constexpr void decode_index(Value&& value, is_context auto&& ctx, auto&& it, auto&& end,
+                               SelectedIndex&&... selected_index)
    {
       static constexpr auto Key = get<I>(reflect<T>::keys);
       static constexpr auto KeyWithEndQuote = join_v<Key, chars<"\"">>;
@@ -787,7 +788,7 @@ namespace glz
    struct from<JSON, T>
    {
       template <auto Opts, class It>
-      GLZ_ALWAYS_INLINE static void op(auto&& value, is_context auto&& ctx, It&& it, auto end) noexcept
+      GLZ_ALWAYS_INLINE static constexpr void op(auto&& value, is_context auto&& ctx, It&& it, auto end) noexcept
       {
          if constexpr (check_quoted_num(Opts)) {
             if (skip_ws<Opts>(ctx, it, end)) {
@@ -1053,7 +1054,7 @@ namespace glz
 
       template <auto Opts, class It, class End>
          requires(not check_is_padded(Opts))
-      static void op(auto& value, is_context auto&& ctx, It&& it, End end)
+      static constexpr void op(auto& value, is_context auto&& ctx, It&& it, End end)
       {
          if constexpr (check_string_as_number(Opts)) {
             auto start = it;
@@ -1770,7 +1771,7 @@ namespace glz
    struct from<JSON, T>
    {
       template <auto Opts, class It, class End>
-      GLZ_ALWAYS_INLINE static void op(auto& value, is_context auto&& ctx, It&& it, End end) noexcept
+      GLZ_ALWAYS_INLINE static constexpr void op(auto& value, is_context auto&& ctx, It&& it, End end) noexcept
       {
          if constexpr (!check_opening_handled(Opts)) {
             if constexpr (!check_ws_handled(Opts)) {
@@ -2136,7 +2137,7 @@ namespace glz
    struct from<JSON, T>
    {
       template <auto Options>
-      static void op(auto&& value, is_context auto&& ctx, auto&& it, auto end)
+      static constexpr void op(auto&& value, is_context auto&& ctx, auto&& it, auto end)
       {
          constexpr auto Opts = ws_handled_off<Options>();
          if constexpr (!check_ws_handled(Options)) {
@@ -2842,7 +2843,7 @@ namespace glz
    struct from<JSON, T>
    {
       template <auto Options, string_literal tag = "">
-      static void op(auto&& value, is_context auto&& ctx, auto&& it, auto end)
+      static constexpr void op(auto&& value, is_context auto&& ctx, auto&& it, auto end)
       {
          static constexpr auto num_members = reflect<T>::size;
 
@@ -4752,7 +4753,7 @@ namespace glz
    };
 
    template <is_buffer Buffer>
-   [[nodiscard]] error_ctx validate_json(Buffer&& buffer) noexcept
+   [[nodiscard]] constexpr error_ctx validate_json(Buffer&& buffer) noexcept
    {
       context ctx{};
       glz::skip skip_value{};
@@ -4760,7 +4761,7 @@ namespace glz
    }
 
    template <is_buffer Buffer>
-   [[nodiscard]] error_ctx validate_jsonc(Buffer&& buffer) noexcept
+   [[nodiscard]] constexpr error_ctx validate_jsonc(Buffer&& buffer) noexcept
    {
       context ctx{};
       glz::skip skip_value{};
@@ -4769,7 +4770,7 @@ namespace glz
 
    template <read_supported<JSON> T, is_buffer Buffer>
       requires(!is_input_streaming<std::remove_reference_t<Buffer>>)
-   [[nodiscard]] error_ctx read_json(T& value, Buffer&& buffer)
+   [[nodiscard]] constexpr error_ctx read_json(T& value, Buffer&& buffer)
    {
       context ctx{};
       return read<opts{}>(value, std::forward<Buffer>(buffer), ctx);
@@ -4778,14 +4779,14 @@ namespace glz
    // Overload for streaming input buffers (istream_buffer)
    template <read_supported<JSON> T, class Buffer>
       requires is_input_streaming<std::remove_reference_t<Buffer>>
-   [[nodiscard]] error_ctx read_json(T& value, Buffer&& buffer)
+   [[nodiscard]] constexpr error_ctx read_json(T& value, Buffer&& buffer)
    {
       return read_streaming<opts{}>(value, std::forward<Buffer>(buffer));
    }
 
    template <read_supported<JSON> T, is_buffer Buffer>
       requires(!is_input_streaming<std::remove_reference_t<Buffer>>)
-   [[nodiscard]] expected<T, error_ctx> read_json(Buffer&& buffer)
+   [[nodiscard]] constexpr expected<T, error_ctx> read_json(Buffer&& buffer)
    {
       T value{};
       context ctx{};
@@ -4799,7 +4800,7 @@ namespace glz
    // Overload for streaming input buffers (istream_buffer)
    template <read_supported<JSON> T, class Buffer>
       requires is_input_streaming<std::remove_reference_t<Buffer>>
-   [[nodiscard]] expected<T, error_ctx> read_json(Buffer&& buffer)
+   [[nodiscard]] constexpr expected<T, error_ctx> read_json(Buffer&& buffer)
    {
       T value{};
       const error_ctx ec = read_streaming<opts{}>(value, std::forward<Buffer>(buffer));

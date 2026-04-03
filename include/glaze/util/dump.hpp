@@ -39,7 +39,7 @@ namespace glz
    }
 
    template <auto c>
-   GLZ_ALWAYS_INLINE void assign_maybe_cast(auto& b, size_t& ix) noexcept
+   GLZ_ALWAYS_INLINE constexpr void assign_maybe_cast(auto& b, size_t& ix) noexcept
    {
       using V = std::decay_t<decltype(b[0])>;
       using C = std::decay_t<decltype(c)>;
@@ -51,7 +51,7 @@ namespace glz
       }
    }
 
-   GLZ_ALWAYS_INLINE void assign_maybe_cast(const byte_sized auto c, auto& b, size_t& ix) noexcept
+   GLZ_ALWAYS_INLINE constexpr void assign_maybe_cast(const byte_sized auto c, auto& b, size_t& ix) noexcept
    {
       using V = std::decay_t<decltype(b[0])>;
       using C = std::decay_t<decltype(c)>;
@@ -78,7 +78,7 @@ namespace glz
    // ix + n + write_padding_bytes) guarantees sufficient space for subsequent dump calls.
 
    template <bool Checked = true, class B>
-   GLZ_ALWAYS_INLINE void dump(const byte_sized auto c, B& b, size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dump(const byte_sized auto c, B& b, size_t& ix) noexcept(not vector_like<B>)
    {
       if constexpr (Checked && vector_like<B>) {
          if (ix == b.size()) [[unlikely]] {
@@ -90,7 +90,7 @@ namespace glz
    }
 
    template <auto c, bool Checked = true, class B>
-   GLZ_ALWAYS_INLINE void dump(B& b, size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dump(B& b, size_t& ix) noexcept(not vector_like<B>)
    {
       if constexpr (Checked && vector_like<B>) {
          if (ix == b.size()) [[unlikely]] {
@@ -102,7 +102,7 @@ namespace glz
    }
 
    template <string_literal str, bool Checked = true, class B>
-   GLZ_ALWAYS_INLINE void dump(B& b, size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dump(B& b, size_t& ix) noexcept(not vector_like<B>)
    {
       static constexpr auto s = str.sv();
       static constexpr auto n = s.size();
@@ -120,7 +120,7 @@ namespace glz
    }
 
    template <bool Checked = true, class B>
-   GLZ_ALWAYS_INLINE void dump(const sv str, B& b, size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dump(const sv str, B& b, size_t& ix) noexcept(not vector_like<B>)
    {
       const auto n = str.size();
       if constexpr (vector_like<B>) {
@@ -137,7 +137,7 @@ namespace glz
 
    template <auto c, class B>
    [[deprecated("use dumpn(c, n, b, ix) instead of dumpn<c>(n, b, ix) to reduce template instantiations")]]
-   GLZ_ALWAYS_INLINE void dumpn(size_t n, B& b, size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dumpn(size_t n, B& b, size_t& ix) noexcept(not vector_like<B>)
    {
       if constexpr (vector_like<B>) {
          const auto k = ix + n;
@@ -150,7 +150,8 @@ namespace glz
    }
 
    template <class B>
-   GLZ_ALWAYS_INLINE void dumpn(const byte_sized auto c, size_t n, B& b, size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dumpn(const byte_sized auto c, size_t n, B& b,
+                                          size_t& ix) noexcept(not vector_like<B>)
    {
       if constexpr (vector_like<B>) {
          const auto k = ix + n;
@@ -165,14 +166,14 @@ namespace glz
    template <auto c, class B>
    [[deprecated(
       "use dumpn_unchecked(c, n, b, ix) instead of dumpn_unchecked<c>(n, b, ix) to reduce template instantiations")]]
-   GLZ_ALWAYS_INLINE void dumpn_unchecked(size_t n, B& b, size_t& ix) noexcept
+   GLZ_ALWAYS_INLINE constexpr void dumpn_unchecked(size_t n, B& b, size_t& ix) noexcept
    {
       std::memset(&b[ix], c, n);
       ix += n;
    }
 
    template <class B>
-   GLZ_ALWAYS_INLINE void dumpn_unchecked(const byte_sized auto c, size_t n, B& b, size_t& ix) noexcept
+   GLZ_ALWAYS_INLINE constexpr void dumpn_unchecked(const byte_sized auto c, size_t n, B& b, size_t& ix) noexcept
    {
       std::memset(&b[ix], c, n);
       ix += n;
@@ -197,8 +198,8 @@ namespace glz
    }
 
    template <class B>
-   GLZ_ALWAYS_INLINE void dump_newline_indent(const byte_sized auto c, size_t n, B& b,
-                                              size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dump_newline_indent(const byte_sized auto c, size_t n, B& b,
+                                                        size_t& ix) noexcept(not vector_like<B>)
    {
       if constexpr (vector_like<B>) {
          if (const auto k = ix + n + write_padding_bytes; k > b.size()) [[unlikely]] {
@@ -213,7 +214,7 @@ namespace glz
    }
 
    template <const sv& str, bool Checked = true, class B>
-   GLZ_ALWAYS_INLINE void dump(B& b, size_t& ix) noexcept(not vector_like<B> && not Checked)
+   GLZ_ALWAYS_INLINE constexpr void dump(B& b, size_t& ix) noexcept(not vector_like<B> && not Checked)
    {
       static constexpr auto s = str;
       static constexpr auto n = s.size();
@@ -231,7 +232,8 @@ namespace glz
    }
 
    template <bool Checked = true, class B>
-   GLZ_ALWAYS_INLINE void dump_not_empty(const sv str, B& b, size_t& ix) noexcept(not vector_like<B> && not Checked)
+   GLZ_ALWAYS_INLINE constexpr void dump_not_empty(const sv str, B& b,
+                                                   size_t& ix) noexcept(not vector_like<B> && not Checked)
    {
       const auto n = str.size();
       if constexpr (vector_like<B>) {
@@ -247,7 +249,8 @@ namespace glz
    }
 
    template <bool Checked = true, class B>
-   GLZ_ALWAYS_INLINE void dump_maybe_empty(const sv str, B& b, size_t& ix) noexcept(not vector_like<B> && not Checked)
+   GLZ_ALWAYS_INLINE constexpr void dump_maybe_empty(const sv str, B& b,
+                                                     size_t& ix) noexcept(not vector_like<B> && not Checked)
    {
       const auto n = str.size();
       if (n) {
@@ -265,7 +268,7 @@ namespace glz
    }
 
    template <class B>
-   GLZ_ALWAYS_INLINE void dump(const vector_like auto& bytes, B& b, size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dump(const vector_like auto& bytes, B& b, size_t& ix) noexcept(not vector_like<B>)
    {
       const auto n = bytes.size();
       if constexpr (vector_like<B>) {
@@ -279,7 +282,8 @@ namespace glz
    }
 
    template <size_t N, class B>
-   GLZ_ALWAYS_INLINE void dump(const std::array<uint8_t, N>& bytes, B& b, size_t& ix) noexcept(not vector_like<B>)
+   GLZ_ALWAYS_INLINE constexpr void dump(const std::array<uint8_t, N>& bytes, B& b,
+                                         size_t& ix) noexcept(not vector_like<B>)
    {
       if constexpr (vector_like<B>) {
          const auto k = ix + N;

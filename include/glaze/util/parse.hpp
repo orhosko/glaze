@@ -406,7 +406,7 @@ namespace glz
 
    // Checks for a character and validates that we are not at the end (considered an error)
    template <char C, match_invalid_end_opts Opts>
-   GLZ_ALWAYS_INLINE bool match_invalid_end(is_context auto& ctx, auto&& it, auto end) noexcept
+   GLZ_ALWAYS_INLINE constexpr bool match_invalid_end(is_context auto& ctx, auto&& it, auto end) noexcept
    {
       if (*it != C) [[unlikely]] {
          if constexpr (C == '"') {
@@ -584,7 +584,7 @@ namespace glz
 
    // skip whitespace
    template <ws_opts Opts>
-   GLZ_ALWAYS_INLINE bool skip_ws(is_context auto&& ctx, auto&& it, auto end) noexcept
+   GLZ_ALWAYS_INLINE constexpr bool skip_ws(is_context auto&& ctx, auto&& it, auto end) noexcept
    {
       using namespace glz::detail;
 
@@ -716,7 +716,7 @@ namespace glz
       ctx.error = error_code::expected_quote;
    }
 
-   GLZ_ALWAYS_INLINE void skip_string_view(is_context auto&& ctx, auto&& it, auto end) noexcept
+   GLZ_ALWAYS_INLINE constexpr void skip_string_view(is_context auto&& ctx, auto&& it, auto end) noexcept
    {
       while (it < end) [[likely]] {
          const auto* pc = std::memchr(it, '"', size_t(end - it));

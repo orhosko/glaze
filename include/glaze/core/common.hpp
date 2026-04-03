@@ -481,7 +481,7 @@ namespace glz
     * @return         The extracted member.
     */
    template <class Value, class Element>
-   GLZ_ALWAYS_INLINE decltype(auto) get_member(Value&& value, Element&& element)
+   GLZ_ALWAYS_INLINE constexpr decltype(auto) get_member(Value&& value, Element&& element)
    {
       using V = std::decay_t<decltype(element)>;
       if constexpr (std::is_member_object_pointer_v<V>) {

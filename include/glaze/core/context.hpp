@@ -104,7 +104,7 @@ namespace glz
       std::string_view custom_error_message{}; // Human-readable error context
 
       // Returns true when there IS an error (matches std::error_code semantics)
-      operator bool() const noexcept { return ec != error_code::none; }
+      constexpr operator bool() const noexcept { return ec != error_code::none; }
 
       bool operator==(const error_code e) const noexcept { return ec == e; }
    };

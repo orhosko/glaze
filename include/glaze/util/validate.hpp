@@ -26,7 +26,7 @@ namespace glz
 
       // We convert to only single spaces for error messages in order to keep the source info
       // calculation more efficient and avoid needing to allocate more memory.
-      inline void convert_tabs_to_single_spaces(std::string& input) noexcept
+      constexpr void convert_tabs_to_single_spaces(std::string& input) noexcept
       {
          for (auto& c : input) {
             if (c == '\t') {
@@ -35,7 +35,7 @@ namespace glz
          }
       }
 
-      inline source_info get_source_info(const has_size auto& buffer, const size_t index)
+      constexpr source_info get_source_info(const has_size auto& buffer, const size_t index)
       {
          using V = std::decay_t<decltype(buffer[0])>;
 
@@ -87,12 +87,12 @@ namespace glz
 
       template <class B>
          requires(!has_size<B>)
-      inline source_info get_source_info(const B* buffer, const size_t index)
+      constexpr source_info get_source_info(const B* buffer, const size_t index)
       {
          return get_source_info(sv{buffer}, index);
       }
 
-      inline std::string generate_error_string(const std::string_view error, const source_info& info,
+      constexpr std::string generate_error_string(const std::string_view error, const source_info& info,
                                                const std::string_view filename = "")
       {
          std::string b{};

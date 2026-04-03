@@ -2957,12 +2957,12 @@ namespace glz
 
 namespace glz
 {
-   [[nodiscard]] inline std::string format_error(const error_code& ec)
+   [[nodiscard]] constexpr std::string format_error(const error_code& ec)
    {
       return std::string{meta<error_code>::keys[uint32_t(ec)]};
    }
 
-   [[nodiscard]] inline std::string format_error(const error_ctx& pe)
+   [[nodiscard]] constexpr std::string format_error(const error_ctx& pe)
    {
       std::string error_str{meta<error_code>::keys[uint32_t(pe.ec)]};
       if (pe.custom_error_message.size()) {
@@ -2972,7 +2972,7 @@ namespace glz
       return error_str;
    }
 
-   [[nodiscard]] inline std::string format_error(const error_ctx& pe, const auto& buffer)
+   [[nodiscard]] constexpr std::string format_error(const error_ctx& pe, const auto& buffer)
    {
       const auto error_type_str = meta<error_code>::keys[uint32_t(pe.ec)];
 
@@ -2986,7 +2986,7 @@ namespace glz
    }
 
    template <class T>
-   [[nodiscard]] std::string format_error(const expected<T, error_ctx>& pe, const auto& buffer)
+   [[nodiscard]] constexpr std::string format_error(const expected<T, error_ctx>& pe, const auto& buffer)
    {
       if (not pe) {
          return format_error(pe.error(), buffer);
@@ -2997,7 +2997,7 @@ namespace glz
    }
 
    template <class T>
-   [[nodiscard]] std::string format_error(const expected<T, error_ctx>& pe)
+   [[nodiscard]] constexpr std::string format_error(const expected<T, error_ctx>& pe)
    {
       if (not pe) {
          return format_error(pe.error());
