@@ -54,10 +54,34 @@ namespace glz
          buffer.resize(original_size + padding_bytes);
       }
 
+      auto finalize = [&](auto start, auto it) constexpr -> error_ctx {
+         // We don't do depth validation for partial reading
+         if constexpr (check_partial_read(Opts)) {
+            if (ctx.error == error_code::partial_read_complete) [[likely]] {
+               ctx.error = error_code::none;
+            }
+            else if (ctx.error == error_code::end_reached && ctx.depth == 0) {
+               ctx.error = error_code::none;
+            }
+         }
+         else {
+            if (ctx.error == error_code::end_reached && ctx.depth == 0) {
+               ctx.error = error_code::none;
+            }
+         }
+
+         if constexpr (use_padded) {
+            // Restore the original buffer state
+            buffer.resize(original_size);
+         }
+
+         return {size_t(it - start), ctx.error, ctx.custom_error_message};
+      };
+
       auto [it, end] = read_iterators<Opts, use_padded>(buffer);
       auto start = it;
       if (bool(ctx.error)) [[unlikely]] {
-         goto finish;
+         return finalize(start, it);
       }
 
       if constexpr (use_padded) {
@@ -68,7 +92,7 @@ namespace glz
       }
 
       if (bool(ctx.error)) [[unlikely]] {
-         goto finish;
+         return finalize(start, it);
       }
 
       // The JSON RFC 8259 defines: JSON-text = ws value ws
@@ -78,7 +102,7 @@ namespace glz
          if (it < end) {
             skip_ws<Opts>(ctx, it, end);
             if (bool(ctx.error)) [[unlikely]] {
-               goto finish;
+               return finalize(start, it);
             }
             if (it != end) [[unlikely]] {
                ctx.error = error_code::syntax_error;
@@ -86,28 +110,7 @@ namespace glz
          }
       }
 
-   finish:
-      // We don't do depth validation for partial reading
-      if constexpr (check_partial_read(Opts)) {
-         if (ctx.error == error_code::partial_read_complete) [[likely]] {
-            ctx.error = error_code::none;
-         }
-         else if (ctx.error == error_code::end_reached && ctx.depth == 0) {
-            ctx.error = error_code::none;
-         }
-      }
-      else {
-         if (ctx.error == error_code::end_reached && ctx.depth == 0) {
-            ctx.error = error_code::none;
-         }
-      }
-
-      if constexpr (use_padded) {
-         // Restore the original buffer state
-         buffer.resize(original_size);
-      }
-
-      return {size_t(it - start), ctx.error, ctx.custom_error_message};
+      return finalize(start, it);
    }
 
    template <auto Opts, class T>
