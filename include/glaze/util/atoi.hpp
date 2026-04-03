@@ -178,185 +178,45 @@ namespace glz
       return answer;
    }
 
-   template <std::integral T>
-      requires(std::is_unsigned_v<T> && (sizeof(T) <= 8))
-   GLZ_ALWAYS_INLINE constexpr const uint8_t* parse_int(T& v, const uint8_t* c) noexcept
+   template <std::integral T, class Char>
+      requires(std::is_unsigned_v<T> && (sizeof(T) <= 8) && (sizeof(Char) == 1) &&
+               std::is_integral_v<std::remove_cv_t<Char>>)
+   GLZ_ALWAYS_INLINE constexpr const Char* parse_int(T& v, const Char* c) noexcept
    {
-      if (is_digit(*c)) [[likely]] {
-         v = *c - '0';
-         ++c;
-      }
-      else [[unlikely]] {
-         return {};
+      using U = std::decay_t<T>;
+
+      if (!c) {
+         return nullptr;
       }
 
-      if (is_digit(*c)) {
-         v = v * 10 + (*c - '0');
-         ++c;
+      auto is_digit_c = [](Char ch) constexpr -> bool { return ch >= Char('0') && ch <= Char('9'); };
+
+      if (!is_digit_c(*c)) [[unlikely]] {
+         return nullptr;
       }
-      else {
+
+      if (*c == Char('0')) {
+         ++c;
+         if (is_digit_c(*c)) [[unlikely]] {
+            return nullptr;
+         }
+         v = T{0};
          return c;
       }
 
-      if (c[-2] == '0') [[unlikely]] {
-         return {};
-      }
+      U mag = 0;
+      constexpr U limit = std::numeric_limits<U>::max();
 
-      if constexpr (sizeof(T) > 1) {
-         if (is_digit(*c)) {
-            v = v * 10 + (*c - '0');
-            ++c;
+      while (is_digit_c(*c)) {
+         const U digit = U(*c - Char('0'));
+         if (mag > (limit - digit) / U(10)) [[unlikely]] {
+            return nullptr;
          }
-         else {
-            return c;
-         }
-
-         if (is_digit(*c)) {
-            v = v * 10 + (*c - '0');
-            ++c;
-         }
-         else {
-            return c;
-         }
-
-         if constexpr (sizeof(T) > 2) {
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               return c;
-            }
-
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               return c;
-            }
-
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               return c;
-            }
-
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               return c;
-            }
-
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               return c;
-            }
-
-            if constexpr (sizeof(T) > 4) {
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  return c;
-               }
-            }
-         }
-      }
-
-      if (is_digit(*c)) {
-         v = v * 10 + (*c - '0');
-         constexpr auto split = (std::numeric_limits<T>::max)() / 10 - 10;
-         if (v < split) [[unlikely]] {
-            // due to overflow
-            return {};
-         }
+         mag = mag * U(10) + digit;
          ++c;
-         if (is_digit(*c)) [[unlikely]] {
-            return {};
-         }
       }
 
+      v = mag;
       return c;
    }
 
@@ -364,7 +224,7 @@ namespace glz
       requires(std::is_unsigned_v<T>)
    GLZ_ALWAYS_INLINE constexpr bool atoi(T& v, Char*& c) noexcept
    {
-      if (auto ptr = parse_int(v, reinterpret_cast<const uint8_t*>(c))) [[likely]] {
+      if (auto ptr = parse_int(v, c)) [[likely]] {
          c = reinterpret_cast<const Char*>(ptr);
          if (*c == 'e' || *c == 'E') {
             ++c;
@@ -444,242 +304,63 @@ namespace glz
       return false;
    }
 
-   template <std::integral T>
-      requires(std::is_signed_v<T> && (sizeof(T) <= 8))
-   GLZ_ALWAYS_INLINE constexpr const uint8_t* parse_int(T& v, const uint8_t* c) noexcept
+   template <std::integral T, class Char>
+      requires(std::is_signed_v<T> && (sizeof(T) <= 8) && (sizeof(Char) == 1) &&
+               std::is_integral_v<std::remove_cv_t<Char>>)
+   GLZ_ALWAYS_INLINE constexpr const Char* parse_int(T& v, const Char* c) noexcept
    {
-      const uint8_t sign = *c == '-';
-      c += sign;
+      using X = std::decay_t<T>;
+      using U = std::make_unsigned_t<X>;
 
-      if (is_digit(*c)) [[likely]] {
-         v = *c - '0';
-         ++c;
-      }
-      else [[unlikely]] {
-         return {};
+      if (!c) {
+         return nullptr;
       }
 
-      if (is_digit(*c)) {
-         v = v * 10 + (*c - '0');
+      const bool neg = (*c == Char('-'));
+      c += neg;
+
+      auto is_digit_c = [](Char ch) constexpr -> bool { return ch >= Char('0') && ch <= Char('9'); };
+
+      if (!is_digit_c(*c)) [[unlikely]] {
+         return nullptr;
+      }
+
+      if (*c == Char('0')) {
          ++c;
+         if (is_digit_c(*c)) [[unlikely]] {
+            return nullptr;
+         }
+         v = T{0};
+         return c;
+      }
+
+      U mag = 0;
+
+      constexpr U pos_limit = U(std::numeric_limits<X>::max());
+      constexpr U neg_limit = pos_limit + U(1);
+      const U limit = neg ? neg_limit : pos_limit;
+
+      while (is_digit_c(*c)) {
+         const U digit = U(*c - Char('0'));
+         if (mag > (limit - digit) / U(10)) [[unlikely]] {
+            return nullptr;
+         }
+         mag = mag * U(10) + digit;
+         ++c;
+      }
+
+      if (neg) {
+         if (mag == neg_limit) {
+            v = std::numeric_limits<X>::min();
+         }
+         else {
+            v = -static_cast<X>(mag);
+         }
       }
       else {
-         if (sign) {
-            v = -v;
-         }
-         return c;
+         v = static_cast<X>(mag);
       }
 
-      if (c[-2] == '0') [[unlikely]] {
-         return {};
-      }
-
-      if constexpr (sizeof(T) > 1) {
-         if (is_digit(*c)) {
-            v = v * 10 + (*c - '0');
-            ++c;
-         }
-         else {
-            if (sign) {
-               v = -v;
-            }
-            return c;
-         }
-
-         if (is_digit(*c)) {
-            v = v * 10 + (*c - '0');
-            ++c;
-         }
-         else {
-            if (sign) {
-               v = -v;
-            }
-            return c;
-         }
-
-         if constexpr (sizeof(T) > 2) {
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               if (sign) {
-                  v = -v;
-               }
-               return c;
-            }
-
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               if (sign) {
-                  v = -v;
-               }
-               return c;
-            }
-
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               if (sign) {
-                  v = -v;
-               }
-               return c;
-            }
-
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               if (sign) {
-                  v = -v;
-               }
-               return c;
-            }
-
-            if (is_digit(*c)) {
-               v = v * 10 + (*c - '0');
-               ++c;
-            }
-            else {
-               if (sign) {
-                  v = -v;
-               }
-               return c;
-            }
-
-            if constexpr (sizeof(T) > 4) {
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-
-               if (is_digit(*c)) {
-                  v = v * 10 + (*c - '0');
-                  ++c;
-               }
-               else {
-                  if (sign) {
-                     v = -v;
-                  }
-                  return c;
-               }
-            }
-         }
-      }
-
-      if (is_digit(*c)) {
-         if (sign) {
-            if (would_overflow_negative<T>(v, *c)) [[unlikely]] {
-               return {};
-            }
-            v = -1 * v;
-            v = v * 10 - (*c - '0');
-         }
-         else {
-            if (would_overflow_positive<T>(v, *c)) [[unlikely]] {
-               return {};
-            }
-            v = v * 10 + (*c - '0');
-         }
-         ++c;
-         if (is_digit(*c)) [[unlikely]] {
-            return {};
-         }
-         return c;
-      }
-
-      if (sign) {
-         v = -v;
-      }
       return c;
    }
 
@@ -691,8 +372,8 @@ namespace glz
       using utype = std::make_unsigned_t<X>;
 
       const uint8_t sign = *c == '-';
-      if (auto ptr = parse_int(v, reinterpret_cast<const uint8_t*>(c))) [[likely]] {
-         c = reinterpret_cast<const Char*>(ptr);
+      if (auto ptr = parse_int(v, c)) [[likely]] {
+         c = ptr;
          if (*c == 'e' || *c == 'E') {
             ++c;
          }

@@ -220,74 +220,49 @@ namespace glz
       return v;
    }
 
+   template <std::size_t Bytes, class UInt, class Char>
+   GLZ_ALWAYS_INLINE constexpr UInt load_le(const Char* p) noexcept
+   {
+      static_assert(std::is_unsigned_v<UInt>);
+      static_assert(Bytes <= sizeof(UInt));
+
+      UInt v{};
+      for (std::size_t i = 0; i < Bytes; ++i) {
+         v |= (UInt{static_cast<unsigned char>(p[i])} << (i * 8));
+      }
+      return v;
+   }
+
    template <const std::string_view& Str, size_t N = Str.size()>
    GLZ_ALWAYS_INLINE constexpr bool comparitor(const auto* other) noexcept
    {
-      // pack() builds values in little-endian order (byte 0 in LSB position).
-      // On big-endian systems, memcpy produces native (big-endian) values,
-      // so we need to byteswap to match the packed representation.
       if constexpr (N == 8) {
          static constexpr auto packed = pack<Str, 8>();
-         uint64_t in;
-         std::memcpy(&in, other, 8);
-         if constexpr (std::endian::native == std::endian::big) {
-            in = std::byteswap(in);
-         }
-         return (in == packed);
+         return load_le<8, uint64_t>(other) == packed;
       }
       else if constexpr (N == 7) {
          static constexpr auto packed = pack_buffered<Str, 8>();
-         uint64_t in{};
-         std::memcpy(&in, other, 7);
-         if constexpr (std::endian::native == std::endian::big) {
-            in = std::byteswap(in);
-         }
-         return (in == packed);
+         return load_le<7, uint64_t>(other) == packed;
       }
       else if constexpr (N == 6) {
          static constexpr auto packed = pack_buffered<Str, 8>();
-         uint64_t in{};
-         std::memcpy(&in, other, 6);
-         if constexpr (std::endian::native == std::endian::big) {
-            in = std::byteswap(in);
-         }
-         return (in == packed);
+         return load_le<6, uint64_t>(other) == packed;
       }
       else if constexpr (N == 5) {
          static constexpr auto packed = pack<Str, 4>();
-         uint32_t in;
-         std::memcpy(&in, other, 4);
-         if constexpr (std::endian::native == std::endian::big) {
-            in = std::byteswap(in);
-         }
-         return (in == packed) & (Str[4] == other[4]);
+         return (load_le<4, uint32_t>(other) == packed) & (Str[4] == other[4]);
       }
       else if constexpr (N == 4) {
          static constexpr auto packed = pack<Str, 4>();
-         uint32_t in;
-         std::memcpy(&in, other, 4);
-         if constexpr (std::endian::native == std::endian::big) {
-            in = std::byteswap(in);
-         }
-         return (in == packed);
+         return load_le<4, uint32_t>(other) == packed;
       }
       else if constexpr (N == 3) {
          static constexpr auto packed = pack<Str, 2>();
-         uint16_t in;
-         std::memcpy(&in, other, 2);
-         if constexpr (std::endian::native == std::endian::big) {
-            in = std::byteswap(in);
-         }
-         return (in == packed) & (Str[2] == other[2]);
+         return (load_le<2, uint16_t>(other) == packed) & (Str[2] == other[2]);
       }
       else if constexpr (N == 2) {
          static constexpr auto packed = pack<Str, 2>();
-         uint16_t in;
-         std::memcpy(&in, other, 2);
-         if constexpr (std::endian::native == std::endian::big) {
-            in = std::byteswap(in);
-         }
-         return (in == packed);
+         return load_le<2, uint16_t>(other) == packed;
       }
       else if constexpr (N == 1) {
          return Str[0] == other[0];
@@ -296,10 +271,7 @@ namespace glz
          return true;
       }
       else {
-         // Clang and GCC optimize this extremely well for constexpr std::string_view
-         // Packing data can create more binary on GCC
-         // The other cases probably aren't needed as compiler explorer shows them optimized equally well as memcmp
-         return 0 == std::memcmp(Str.data(), other, N);
+         return std::string_view{Str.data(), N} == std::string_view{other, N};
       }
    }
 

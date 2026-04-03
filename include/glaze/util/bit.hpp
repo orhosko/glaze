@@ -25,7 +25,7 @@ namespace glz
 #endif
    }
 
-   GLZ_ALWAYS_INLINE auto countr_zero(const uint64_t x) noexcept
+   GLZ_ALWAYS_INLINE constexpr auto countr_zero(const uint64_t x) noexcept
    {
 #ifdef _MSC_VER
       return std::countr_zero(x);

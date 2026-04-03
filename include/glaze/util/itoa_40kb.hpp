@@ -115,10 +115,26 @@ namespace glz
 
       // ==================== uint64_t implementations ====================
 
-      GLZ_ALWAYS_INLINE char* u64_2(char* buf, uint64_t val) noexcept
+      GLZ_ALWAYS_INLINE constexpr char* copy_2(char* dst, const char* src) noexcept
+      {
+         dst[0] = src[0];
+         dst[1] = src[1];
+         return dst + 2;
+      }
+
+      GLZ_ALWAYS_INLINE constexpr char* copy_4(char* dst, const char* src) noexcept
+      {
+         dst[0] = src[0];
+         dst[1] = src[1];
+         dst[2] = src[2];
+         dst[3] = src[3];
+         return dst + 4;
+      }
+
+      GLZ_ALWAYS_INLINE constexpr char* u64_2(char* buf, uint64_t val) noexcept
       {
          const uint64_t lz = val < 10;
-         std::memcpy(buf, char_table + ((val * 2) | lz), 2);
+         copy_2(buf, char_table + ((val * 2) | lz));
          buf -= lz;
          return buf + 2;
       }
@@ -127,7 +143,7 @@ namespace glz
       {
          const uint64_t aa = (val * 5243ULL) >> 19;
          const uint64_t lz = val < 1000;
-         std::memcpy(buf, char_table + ((aa * 2) | lz), 2);
+         copy_2(buf, char_table + ((aa * 2) | lz));
          buf -= lz;
          std::memcpy(buf + 2, &digit_pairs[val - aa * 100], 2);
          return buf + 4;

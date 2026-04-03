@@ -642,14 +642,30 @@ namespace glz
       return false;
    }
 
-   GLZ_ALWAYS_INLINE void skip_matching_ws(const auto* ws, auto&& it, uint64_t length) noexcept
+   template <class UInt, class Ptr>
+   GLZ_ALWAYS_INLINE constexpr UInt load_u(const Ptr p) noexcept
+   {
+      static_assert(std::is_unsigned_v<UInt>);
+
+      if consteval {
+         UInt v{};
+         for (std::size_t i = 0; i < sizeof(UInt); ++i) {
+            v |= (UInt{static_cast<unsigned char>(p[i])} << (i * 8));
+         }
+         return v;
+      }
+      else {
+         UInt v;
+         std::memcpy(&v, p, sizeof(UInt));
+         return v;
+      }
+   }
+
+   GLZ_ALWAYS_INLINE constexpr void skip_matching_ws(const auto* ws, auto&& it, uint64_t length) noexcept
    {
       if (length > 7) {
-         uint64_t v[2];
          while (length > 8) {
-            std::memcpy(v, ws, 8);
-            std::memcpy(v + 1, it, 8);
-            if (v[0] != v[1]) {
+            if (load_u<uint64_t>(ws) != load_u<uint64_t>(it)) {
                return;
             }
             length -= 8;
@@ -661,9 +677,7 @@ namespace glz
          ws -= shift;
          it -= shift;
 
-         std::memcpy(v, ws, 8);
-         std::memcpy(v + 1, it, 8);
-         if (v[0] != v[1]) {
+         if (load_u<uint64_t>(ws) != load_u<uint64_t>(it)) {
             return;
          }
          it += 8;
@@ -672,10 +686,7 @@ namespace glz
       {
          constexpr uint64_t n{sizeof(uint32_t)};
          if (length >= n) {
-            uint32_t v[2];
-            std::memcpy(v, ws, n);
-            std::memcpy(v + 1, it, n);
-            if (v[0] != v[1]) {
+            if (load_u<uint32_t>(ws) != load_u<uint32_t>(it)) {
                return;
             }
             length -= n;
@@ -686,14 +697,9 @@ namespace glz
       {
          constexpr uint64_t n{sizeof(uint16_t)};
          if (length >= n) {
-            uint16_t v[2];
-            std::memcpy(v, ws, n);
-            std::memcpy(v + 1, it, n);
-            if (v[0] != v[1]) {
+            if (load_u<uint16_t>(ws) != load_u<uint16_t>(it)) {
                return;
             }
-            // length -= n;
-            // ws += n;
             it += n;
          }
       }
@@ -719,7 +725,17 @@ namespace glz
    GLZ_ALWAYS_INLINE constexpr void skip_string_view(is_context auto&& ctx, auto&& it, auto end) noexcept
    {
       while (it < end) [[likely]] {
-         const auto* pc = std::memchr(it, '"', size_t(end - it));
+         std::decay_t<decltype(it)> pc = nullptr;
+         if consteval {
+            auto p = it;
+            while (p < end && *p != '"') {
+               ++p;
+            }
+            pc = (p < end) ? p : nullptr;
+         }
+         else {
+            pc = static_cast<const char*>(std::memchr(it, '"', size_t(end - it)));
+         }
          if (pc) [[likely]] {
             it = reinterpret_cast<std::decay_t<decltype(it)>>(pc);
             auto* prev = it - 1;

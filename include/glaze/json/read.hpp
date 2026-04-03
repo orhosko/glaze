@@ -1052,6 +1052,38 @@ namespace glz
          }
       }
 
+      template <class Dst, class Src>
+      GLZ_ALWAYS_INLINE static constexpr void copy_n_constexpr(Dst* dst, const Src* src, std::size_t n) noexcept
+      {
+         if consteval {
+            for (std::size_t i = 0; i < n; ++i) {
+               dst[i] = static_cast<Dst>(src[i]);
+            }
+         }
+         else {
+            std::memcpy(dst, src, n);
+         }
+      }
+
+      GLZ_ALWAYS_INLINE static constexpr std::uint64_t load_u64_le(const char* p) noexcept
+      {
+         if consteval {
+            std::uint64_t x = 0;
+            for (std::size_t i = 0; i < 8; ++i) {
+               x |= (std::uint64_t)(unsigned char)p[i] << (8 * i);
+            }
+            return x;
+         }
+         else {
+            std::uint64_t x;
+            std::memcpy(&x, p, 8);
+            if constexpr (std::endian::native == std::endian::big) {
+               x = std::byteswap(x);
+            }
+            return x;
+         }
+      }
+
       template <auto Opts, class It, class End>
          requires(not check_is_padded(Opts))
       static constexpr void op(auto& value, is_context auto&& ctx, It&& it, End end)
@@ -1086,57 +1118,64 @@ namespace glz
 
                if (size_t(end - it) >= 8) {
                   auto start = it;
-                  const auto end8 = end - 8;
-                  while (true) {
-                     if (it >= end8) [[unlikely]] {
-                        break;
+
+                  auto is_unescaped_quote = [](auto q) constexpr -> bool {
+                     auto* prev = q - 1;
+                     while (*prev == '\\') {
+                        --prev;
+                     }
+                     return (size_t(q - prev) % 2) != 0;
+                  };
+
+                  auto find_string_end = [&](auto from, auto to) constexpr -> decltype(from) {
+                     if (size_t(to - from) >= 8) {
+                        const auto end8 = to - 8;
+
+                        while (true) {
+                           if (from >= end8) [[unlikely]] {
+                              break;
+                           }
+
+                           const std::uint64_t chunk = load_u64_le(from);
+                           const uint64_t test_chars = has_quote(chunk);
+
+                           if (test_chars) {
+                              from += (countr_zero(test_chars) >> 3);
+
+                              if (is_unescaped_quote(from)) {
+                                 return from;
+                              }
+
+                              ++from; // skip escaped quote
+                           }
+                           else {
+                              from += 8;
+                           }
+                        }
+
+                        while (from > start && from[-1] == '\\') [[unlikely]] {
+                           // if we ended on an escape character then we need to rewind
+                           // because we lost our context
+                           --from;
+                        }
                      }
 
-                     uint64_t chunk;
-                     std::memcpy(&chunk, it, 8);
-                     if constexpr (std::endian::native == std::endian::big) {
-                        chunk = std::byteswap(chunk);
+                     for (; from < to; ++from) {
+                        if (*from == '"' && is_unescaped_quote(from)) {
+                           return from;
+                        }
                      }
-                     const uint64_t test_chars = has_quote(chunk);
-                     if (test_chars) {
-                        it += (countr_zero(test_chars) >> 3);
 
-                        auto* prev = it - 1;
-                        while (*prev == '\\') {
-                           --prev;
-                        }
-                        if (size_t(it - prev) % 2) {
-                           goto continue_decode;
-                        }
-                        ++it; // skip the escaped quote
-                     }
-                     else {
-                        it += 8;
-                     }
+                     return to;
+                  };
+
+                  const auto quote = find_string_end(it, end);
+                  if (quote == end) [[unlikely]] {
+                     ctx.error = error_code::unexpected_end;
+                     return;
                   }
 
-                  while (it[-1] == '\\') [[unlikely]] {
-                     // if we ended on an escape character then we need to rewind
-                     // because we lost our context
-                     --it;
-                  }
-
-                  for (; it < end; ++it) {
-                     if (*it == '"') {
-                        auto* prev = it - 1;
-                        while (*prev == '\\') {
-                           --prev;
-                        }
-                        if (size_t(it - prev) % 2) {
-                           goto continue_decode;
-                        }
-                     }
-                  }
-
-                  ctx.error = error_code::unexpected_end;
-                  return;
-
-               continue_decode:
+                  it = quote;
 
                   const auto available_padding = size_t(end - it);
                   auto n = size_t(it - start);
@@ -1150,12 +1189,7 @@ namespace glz
                            break;
                         }
 
-                        std::memcpy(p, start, 8);
-                        uint64_t swar;
-                        std::memcpy(&swar, p, 8);
-                        if constexpr (std::endian::native == std::endian::big) {
-                           swar = std::byteswap(swar);
-                        }
+                        const std::uint64_t swar = load_u64_le(start);
 
                         constexpr uint64_t lo7_mask = repeat_byte8(0b01111111);
                         const uint64_t lo7 = swar & lo7_mask;
@@ -1165,13 +1199,17 @@ namespace glz
 
                         next &= repeat_byte8(0b10000000);
                         if (next == 0) {
+                           copy_n_constexpr(p, start, 8);
                            start += 8;
                            p += 8;
                            continue;
                         }
 
                         next = countr_zero(next) >> 3;
+                        copy_n_constexpr(p, start, next);
                         start += next;
+                        p += next;
+
                         if (start >= it) {
                            break;
                         }
@@ -1180,10 +1218,10 @@ namespace glz
                            ctx.error = error_code::syntax_error;
                            return;
                         }
+
                         ++start; // skip the escape
                         if (*start == 'u') {
                            ++start;
-                           p += next;
                            const auto mark = start;
                            const auto offset = handle_unicode_code_point(start, p, end);
                            if (offset == 0) [[unlikely]] {
@@ -1195,7 +1233,6 @@ namespace glz
                            n -= 2 + uint32_t(start - mark);
                         }
                         else {
-                           p += next;
                            *p = char_unescape_table[uint8_t(*start)];
                            if (*p == 0) [[unlikely]] {
                               ctx.error = error_code::invalid_escape;

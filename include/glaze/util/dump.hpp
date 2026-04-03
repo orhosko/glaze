@@ -126,12 +126,21 @@ namespace glz
       if constexpr (vector_like<B>) {
          if constexpr (Checked) {
             const auto k = ix + n;
-            if (ix + n > b.size()) [[unlikely]] {
+            if (k > b.size()) [[unlikely]] {
                b.resize(2 * k);
             }
          }
       }
-      std::memcpy(&b[ix], str.data(), n);
+
+      if consteval {
+         for (size_t i = 0; i < n; ++i) {
+            b[ix + i] = str[i];
+         }
+      }
+      else {
+         std::memcpy(&b[ix], str.data(), n);
+      }
+
       ix += n;
    }
 
@@ -159,7 +168,16 @@ namespace glz
             b.resize(2 * k);
          }
       }
-      std::memset(&b[ix], c, n);
+
+      if consteval {
+         for (size_t i = 0; i < n; ++i) {
+            b[ix + i] = c;
+         }
+      }
+      else {
+         std::memset(&b[ix], static_cast<unsigned char>(c), n);
+      }
+
       ix += n;
    }
 
@@ -248,6 +266,14 @@ namespace glz
       ix += n;
    }
 
+   template <class Out, class In>
+   GLZ_ALWAYS_INLINE constexpr void copy_n_constexpr(Out* dst, const In* src, size_t n) noexcept
+   {
+      for (size_t i = 0; i < n; ++i) {
+         dst[i] = src[i];
+      }
+   }
+
    template <bool Checked = true, class B>
    GLZ_ALWAYS_INLINE constexpr void dump_maybe_empty(const sv str, B& b,
                                                      size_t& ix) noexcept(not vector_like<B> && not Checked)
@@ -262,7 +288,14 @@ namespace glz
                }
             }
          }
-         std::memcpy(&b[ix], str.data(), n);
+
+         if consteval {
+            copy_n_constexpr(&b[ix], str.data(), n);
+         }
+         else {
+            std::memcpy(&b[ix], str.data(), n);
+         }
+
          ix += n;
       }
    }
